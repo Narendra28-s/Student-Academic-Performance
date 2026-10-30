@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Child Marks & Grades - Parent Portal{% endblock %}
+{% block header_title %}Academic Marks & Assessment History{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-secondary-navy">Academic Assessment Records for {{ student.full_name }}</h5>
+        <span class="text-muted small">Roll ID: <strong>{{ student.student_id }}</strong> | Overall Average: <strong class="text-teal">{{ student.get_average_marks() }}%</strong></span>
+    </div>
+
+    {% if children|length > 1 %}
+        <div class="d-flex align-items-center gap-2">
+            <label class="small fw-bold text-secondary mb-0">Select Child:</label>
+            <select class="form-select form-select-sm" style="width: auto;" onchange="location.href='{{ url_for('parent.marks') }}?child_id=' + this.value">
+                {% for c in children %}
+                    <option value="{{ c.id }}" {% if student.id == c.id %}selected{% endif %}>{{ c.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Subject-Wise Averages Cards -->
+<div class="row g-3 mb-4">
+    {% for s in subject_perf %}
+        <div class="col-sm-6 col-lg-4">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">{{ s.subject_code }}</div>
+                    <div class="fw-bold text-secondary-navy mb-1 text-truncate" style="max-width: 170px;" title="{{ s.subject_name }}">
+                        {{ s.subject_name }}
+                    </div>
+                    <h4 class="stat-value {% if s.average < 50 %}text-danger{% elif s.average < 65 %}text-warning{% else %}text-success{% endif %}">
+                        {{ s.average }}%
+                    </h4>
+                    <div class="stat-subtext">{{ s.count }} Assessment(s) Taken</div>
+                </div>
+                <div class="stat-icon {% if s.status == 'Good' %}green{% elif s.status == 'Warning' %}amber{% else %}red{% endif %}">
+                    {% if s.status == 'Good' %}
+                        <i class="bi bi-check-lg"></i>
+                    {% elif s.status == 'Warning' %}
+                        <i class="bi bi-exclamation"></i>
+                    {% else %}
+                        <i class="bi bi-exclamation-triangle"></i>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Detailed Marks History Table -->
+<div class="table-card">
+    <div class="table-header-bar">
+        <h5 class="chart-title mb-0"><i class="bi bi-card-checklist me-2 text-teal"></i>Complete Assessment Marks</h5>
+        <span class="text-muted small">Total <strong>{{ marks|length }}</strong> recorded assessments</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Assessment Name</th>
+                    <th>Assessment Type</th>
+                    <th>Score / Max</th>
+                    <th>Percentage</th>
+                    <th>Status</th>
+                    <th>Faculty Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if marks %}
+                    {% for m in marks %}
+                        <tr>
+                            <td>
+                                <strong>{{ m.assessment.subject.code }}</strong>
+                                <span class="d-block small text-muted">{{ m.assessment.subject.name }}</span>
+                            </td>
+                            <td class="fw-semibold">{{ m.assessment.name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ m.assessment.assessment_type }}</span></td>
+                            <td><strong>{{ m.score }}</strong> / {{ m.assessment.max_marks }}</td>
+                            <td>
+                                <span class="fw-bold {% if m.percentage < 50 %}text-danger{% elif m.percentage < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ m.percentage }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if m.percentage >= 50 %}
+                                    <span class="badge bg-success-subtle text-success">Pass</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Needs Help</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ m.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-5">No assessments recorded yet.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

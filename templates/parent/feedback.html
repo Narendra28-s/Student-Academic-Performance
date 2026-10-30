@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Feedback - Parent Portal{% endblock %}
+{% block header_title %}Faculty Observations & Guidance{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-secondary-navy">Instructor Feedback for {{ student.full_name }}</h5>
+        <span class="text-muted small">Guidance and observations directly from course professors</span>
+    </div>
+
+    {% if children|length > 1 %}
+        <div class="d-flex align-items-center gap-2">
+            <label class="small fw-bold text-secondary mb-0">Select Child:</label>
+            <select class="form-select form-select-sm" style="width: auto;" onchange="location.href='{{ url_for('parent.feedback') }}?child_id=' + this.value">
+                {% for c in children %}
+                    <option value="{{ c.id }}" {% if student.id == c.id %}selected{% endif %}>{{ c.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+</div>
+
+{% if feedbacks %}
+    <div class="row g-3">
+        {% for fb in feedbacks %}
+            <div class="col-md-6">
+                <div class="table-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <div>
+                            <h6 class="fw-bold text-secondary-navy mb-0">
+                                <i class="bi bi-person-fill text-teal me-1"></i>{{ fb.faculty.user.full_name }}
+                            </h6>
+                            <small class="text-muted">{{ fb.faculty.designation }} ({{ fb.faculty.department }})</small>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ fb.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="badge bg-teal-subtle text-teal-dark">
+                            Course: {{ fb.subject.name if fb.subject else 'General Standing' }}
+                        </span>
+                    </div>
+
+                    <p class="text-dark small mb-3">
+                        "{{ fb.feedback_text }}"
+                    </p>
+
+                    {% if fb.recommendation %}
+                        <div class="p-3 bg-light rounded-3 border small">
+                            <strong class="text-secondary-navy"><i class="bi bi-lightbulb-fill text-warning me-1"></i>Actionable Improvement Advice:</strong>
+                            <p class="mb-0 mt-1 text-dark">{{ fb.recommendation }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="table-card p-5 text-center">
+        <i class="bi bi-chat-quote text-teal fs-1 mb-3"></i>
+        <h5 class="fw-bold text-secondary-navy">No Teacher Remarks Posted Yet</h5>
+        <p class="text-muted">Faculty feedback entries will appear here once instructors submit observations.</p>
+    </div>
+{% endif %}
+{% endblock %}

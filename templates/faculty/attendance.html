@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Logs - Faculty Portal{% endblock %}
+{% block header_title %}Class Attendance Logs{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <form method="GET" action="{{ url_for('faculty.attendance_list') }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <select name="class_id" class="form-select form-select-sm" style="width: auto;">
+                {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class == c.id %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="date" name="date" class="form-control form-control-sm" style="width: auto;" value="{{ selected_date }}">
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Load Date</button>
+        </form>
+
+        <a href="{{ url_for('faculty.attendance_entry', class_id=selected_class, date=selected_date) }}" class="btn btn-sm btn-teal">
+            <i class="bi bi-pencil-square me-1"></i> Edit Attendance For Date
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Roll ID</th>
+                    <th>Student Name</th>
+                    <th>Date</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td><strong>{{ r.student.student_id }}</strong></td>
+                            <td class="fw-semibold">{{ r.student.full_name }}</td>
+                            <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ r.academic_class.display_name }}</span></td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Present</span>
+                                {% elif r.status == 'Late' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-clock me-1"></i>Late</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ r.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-5">No attendance entries recorded for this date. Click "Edit Attendance" to record.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

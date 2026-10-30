@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students - EduMonitor AI{% endblock %}
+{% block header_title %}Student Directory & Records{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <!-- Header with Search, Filter & Add Button -->
+    <div class="table-header-bar">
+        <form method="GET" action="{{ url_for('admin.students') }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="input-group input-group-sm" style="min-width: 250px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by name, ID, email..." value="{{ search_query }}">
+            </div>
+
+            <select name="class_id" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Classes</option>
+                {% for c in classes %}
+                    <option value="{{ c.id }}" {% if class_filter == c.id|string %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="status" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Statuses</option>
+                <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+                <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            {% if search_query or class_filter or status_filter %}
+                <a href="{{ url_for('admin.students') }}" class="btn btn-sm btn-link text-muted">Clear</a>
+            {% endif %}
+        </form>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.export_students_csv') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-download me-1"></i> Export CSV
+            </a>
+            <a href="{{ url_for('admin.add_student') }}" class="btn btn-sm btn-teal">
+                <i class="bi bi-person-plus-fill me-1"></i> Add Student
+            </a>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="table-responsive">
+        <table class="custom-table" id="studentsTable">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Class</th>
+                    <th>Gender</th>
+                    <th>Avg Marks</th>
+                    <th>Attendance</th>
+                    <th>Risk Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if students %}
+                    {% for s in students %}
+                        {% set pred = s.get_latest_prediction() %}
+                        {% set avg = s.get_average_marks() %}
+                        {% set att = s.get_attendance_percentage() %}
+                        <tr>
+                            <td><strong class="text-secondary-navy">{{ s.student_id }}</strong></td>
+                            <td>
+                                <a href="{{ url_for('admin.view_student', id=s.id) }}" class="text-decoration-none fw-semibold text-dark">
+                                    {{ s.full_name }}
+                                </a>
+                            </td>
+                            <td class="text-muted small">{{ s.email }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ s.academic_class.display_name }}</span></td>
+                            <td>{{ s.gender }}</td>
+                            <td>
+                                <span class="fw-bold {% if avg < 50 %}text-danger{% elif avg < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ avg }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if att < 65 %}text-danger{% elif att < 75 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ att }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if pred %}
+                                    <span class="risk-pill {{ pred.risk_level }}">
+                                        {{ pred.risk_level }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_student', id=s.id) }}" class="btn btn-outline-secondary" title="View Full Academic Profile">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.edit_student', id=s.id) }}" class="btn btn-outline-primary" title="Edit Student">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ s.id }}" title="Delete Student">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade text-start" id="deleteModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Student Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to permanently delete student <strong>{{ s.full_name }}</strong> (ID: <code>{{ s.student_id }}</code>)?</p>
+                                                <div class="alert alert-warning small mb-0">
+                                                    <i class="bi bi-info-circle me-1"></i> This will also remove associated academic marks, attendance records, and risk predictions for this student.
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form method="POST" action="{{ url_for('admin.delete_student', id=s.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger fw-bold"><i class="bi bi-trash me-1"></i>Yes, Delete Student</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <i class="bi bi-search fs-2 d-block mb-2"></i>
+                            No student records matching your query or filters.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Count Summary Footer -->
+    <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+        <span class="text-muted small">Showing <strong>{{ students|length }}</strong> total student(s)</span>
+    </div>
+</div>
+{% endblock %}

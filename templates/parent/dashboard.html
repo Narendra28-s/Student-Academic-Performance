@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Parent Portal - Child Academic Performance Tracking{% endblock %}
+{% block header_title %}Parent Performance Portal{% endblock %}
+
+{% block content %}
+<!-- Multi-Child Switcher & Greeting Bar -->
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-secondary-navy">Welcome, {{ data.parent.user.full_name }}</h5>
+        <span class="text-muted small">Monitoring: <strong class="text-teal">{{ data.selected_student.full_name }}</strong> (Roll ID: {{ data.selected_student.student_id }})</span>
+    </div>
+
+    <!-- Child Selector (If parent has multiple children) -->
+    {% if data.children|length > 1 %}
+        <div class="d-flex align-items-center gap-2">
+            <label class="small fw-bold text-secondary mb-0">Select Child:</label>
+            <select class="form-select form-select-sm" style="width: auto;" onchange="location.href='{{ url_for('parent.dashboard') }}?child_id=' + this.value">
+                {% for c in data.children %}
+                    <option value="{{ c.id }}" {% if data.selected_student.id == c.id %}selected{% endif %}>
+                        {{ c.full_name }} ({{ c.academic_class.display_name }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Automated Alerts (Low attendance or declining marks) -->
+{% if data.alerts %}
+    <div class="mb-4">
+        {% for alert in data.alerts %}
+            <div class="alert alert-{{ alert.type }} d-flex align-items-center gap-3 shadow-sm mb-2" role="alert">
+                <i class="bi bi-bell-fill fs-5"></i>
+                <div>
+                    <strong>{{ alert.title }}:</strong> {{ alert.message }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- 1. Four Summary Cards for Parent -->
+<div class="row g-3 mb-4">
+    <!-- Child's Average Score -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Child's Average Score</div>
+                <h3 class="stat-value">{{ data.average_score }}%</h3>
+                <div class="stat-subtext {% if data.average_score >= 65 %}text-success{% else %}text-warning{% endif %}">
+                    Across All Subjects
+                </div>
+            </div>
+            <div class="stat-icon green">
+                <i class="bi bi-award-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Percentage -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Attendance Rate</div>
+                <h3 class="stat-value {% if data.attendance_stats.percentage < 75 %}text-danger{% else %}text-secondary-navy{% endif %}">
+                    {{ data.attendance_stats.percentage }}%
+                </h3>
+                <div class="stat-subtext">
+                    {{ data.attendance_stats.present }} Present / {{ data.attendance_stats.total }} Days
+                </div>
+            </div>
+            <div class="stat-icon teal">
+                <i class="bi bi-calendar-check-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Requiring Improvement -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Needs Improvement</div>
+                <h3 class="stat-value text-warning">{{ data.needing_improvement_count }}</h3>
+                <div class="stat-subtext text-muted">Subjects scoring &lt; 60%</div>
+            </div>
+            <div class="stat-icon amber">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Standing / Risk Status -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Academic Status</div>
+                <h5 class="stat-value fs-5 mt-1">
+                    <span class="risk-pill {{ data.risk_badge }}">
+                        {{ data.risk_category }}
+                    </span>
+                </h5>
+                <div class="stat-subtext text-muted">Status Summary</div>
+            </div>
+            <div class="stat-icon {% if data.risk_level == 'High' %}red{% elif data.risk_level == 'Medium' %}amber{% else %}green{% endif %}">
+                <i class="bi bi-shield-check"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Interactive Charts (Performance Trends & Subject Breakdown) -->
+<div class="row g-3 mb-4">
+    <!-- Marks Trend Line Chart -->
+    <div class="col-lg-7">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h5 class="chart-title"><i class="bi bi-graph-up-arrow me-2 text-teal"></i>Performance Progress Trend</h5>
+                    <small class="text-muted">Marks progression across tests and assignments</small>
+                </div>
+            </div>
+            <div class="chart-container" style="min-height: 250px;">
+                <canvas id="parentTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Scores Bar Chart -->
+    <div class="col-lg-5">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h5 class="chart-title"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Scores</h5>
+                    <small class="text-muted">Average score per course subject</small>
+                </div>
+            </div>
+            <div class="chart-container" style="min-height: 250px;">
+                <canvas id="parentSubjectChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Teacher Feedback & Actionable Recommendations for Parents -->
+<div class="row g-3">
+    <!-- Faculty Feedback Cards -->
+    <div class="col-lg-7">
+        <div class="table-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h5 class="chart-title mb-0 text-secondary-navy"><i class="bi bi-chat-quote-fill me-2 text-teal"></i>Faculty Observations & Feedback</h5>
+                <a href="{{ url_for('parent.feedback') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+            </div>
+
+            {% if data.feedbacks %}
+                <div class="d-flex flex-column gap-3">
+                    {% for fb in data.feedbacks[:3] %}
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-secondary-navy">{{ fb.faculty.user.full_name }}</strong>
+                                <span class="text-muted small">{{ fb.created_at.strftime('%b %d, %Y') }}</span>
+                            </div>
+                            <div class="text-teal small fw-semibold mb-2">
+                                Course: {{ fb.subject.name if fb.subject else 'General Standing' }}
+                            </div>
+                            <p class="small text-dark mb-2">"{{ fb.feedback_text }}"</p>
+                            {% if fb.recommendation %}
+                                <div class="p-2 bg-white rounded border small">
+                                    <strong class="text-secondary">Recommended Action:</strong> {{ fb.recommendation }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-dots fs-3 d-block mb-2"></i>
+                    No faculty remarks posted for this period.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Plain-English Academic Guidance for Parents -->
+    <div class="col-lg-5">
+        <div class="table-card p-4 h-100">
+            <h5 class="chart-title mb-3 text-secondary-navy"><i class="bi bi-lightbulb-fill me-2 text-warning"></i>Academic Support Guidance</h5>
+            
+            <div class="p-3 rounded-3 mb-3 {% if data.risk_level == 'High' %}bg-danger-subtle text-danger-emphasis{% elif data.risk_level == 'Medium' %}bg-warning-subtle text-warning-emphasis{% else %}bg-success-subtle text-success-emphasis{% endif %} border">
+                <strong>Current Standing: {{ data.risk_category }}</strong>
+                <p class="small mb-0 mt-1">
+                    {% if data.risk_level == 'High' %}
+                        Your child's performance or attendance requires prompt attention. Please review the recommended actions below and connect with course instructors.
+                    {% elif data.risk_level == 'Medium' %}
+                        Your child is making fair progress, but extra practice in borderline subjects will help ensure high academic achievement.
+                    {% else %}
+                        Your child is performing consistently well and maintains strong classroom attendance.
+                    {% endif %}
+                </p>
+            </div>
+
+            <label class="small fw-bold text-secondary mb-2">Recommended Steps at Home:</label>
+            <ul class="list-group list-group-flush small">
+                {% for sug in data.suggestions %}
+                    <li class="list-group-item px-0 py-2 d-flex align-items-start gap-2">
+                        <i class="bi bi-check-circle-fill text-teal mt-1"></i>
+                        <span>{{ sug }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                <a href="{{ url_for('parent.marks') }}" class="btn btn-sm btn-outline-teal">
+                    <i class="bi bi-card-checklist me-1"></i> Full Marks Breakdown
+                </a>
+                <a href="{{ url_for('parent.attendance') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-calendar3 me-1"></i> Attendance Log
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Progress trend line chart
+    renderLineChart(
+        'parentTrendChart',
+        {{ data.charts.trend_labels | tojson }},
+        {{ data.charts.trend_scores | tojson }},
+        'Score (%)'
+    );
+
+    // 2. Subject comparison bar chart
+    renderBarChart(
+        'parentSubjectChart',
+        {{ data.charts.subj_names | tojson }},
+        {{ data.charts.subj_averages | tojson }},
+        'Subject Average (%)',
+        '#1a365d'
+    );
+});
+</script>
+{% endblock %}

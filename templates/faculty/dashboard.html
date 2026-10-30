@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - Academic Management{% endblock %}
+{% block header_title %}Faculty Academic Dashboard{% endblock %}
+
+{% block content %}
+<!-- Welcome & Quick Action Bar -->
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-secondary-navy">Welcome, {{ metrics.faculty.user.full_name }}</h5>
+        <span class="text-muted small">
+            Dept: <strong>{{ metrics.faculty.department }}</strong> | 
+            Employee ID: <strong>{{ metrics.faculty.employee_id }}</strong>
+        </span>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('faculty.marks_entry') }}" class="btn btn-sm btn-teal">
+            <i class="bi bi-pencil-square me-1"></i> Record Marks
+        </a>
+        <a href="{{ url_for('faculty.attendance_entry') }}" class="btn btn-sm btn-primary-navy">
+            <i class="bi bi-calendar-plus me-1"></i> Record Attendance
+        </a>
+        <a href="{{ url_for('faculty.export_marks') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Export Marks CSV
+        </a>
+    </div>
+</div>
+
+<!-- 1. Five Summary Cards for Faculty -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Assigned Classes</div>
+                <h3 class="stat-value">{{ metrics.total_classes }}</h3>
+                <div class="stat-subtext text-muted">Active Teaching Batches</div>
+            </div>
+            <div class="stat-icon navy">
+                <i class="bi bi-building"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Assigned Students</div>
+                <h3 class="stat-value">{{ metrics.total_students }}</h3>
+                <div class="stat-subtext text-primary">In Your Classes</div>
+            </div>
+            <div class="stat-icon blue">
+                <i class="bi bi-people-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Class Avg Score</div>
+                <h3 class="stat-value">{{ metrics.average_score }}%</h3>
+                <div class="stat-subtext {% if metrics.average_score >= 65 %}text-success{% else %}text-warning{% endif %}">
+                    Subject Average
+                </div>
+            </div>
+            <div class="stat-icon green">
+                <i class="bi bi-award-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Class Attendance</div>
+                <h3 class="stat-value">{{ metrics.average_attendance }}%</h3>
+                <div class="stat-subtext {% if metrics.average_attendance >= 75 %}text-success{% else %}text-danger{% endif %}">
+                    Average Attendance Rate
+                </div>
+            </div>
+            <div class="stat-icon teal">
+                <i class="bi bi-calendar-check-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Students At Risk</div>
+                <h3 class="stat-value text-danger">{{ metrics.students_at_risk_count }}</h3>
+                <div class="stat-subtext text-danger">Requires Faculty Review</div>
+            </div>
+            <div class="stat-icon red">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Performance Comparison Chart & Declining Performance Alerts -->
+<div class="row g-3 mb-4">
+    <!-- Assessment Average Comparison Chart -->
+    <div class="col-lg-7">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <h5 class="chart-title"><i class="bi bi-bar-chart-line-fill me-2 text-teal"></i>Assessment Performance Comparison</h5>
+                    <small class="text-muted">Average class score per internal assessment / test</small>
+                </div>
+            </div>
+            <div class="chart-container" style="min-height: 270px;">
+                <canvas id="facultyAssessChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Declining Marks Warning Box -->
+    <div class="col-lg-5">
+        <div class="table-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h6 class="fw-bold text-danger mb-0">
+                    <i class="bi bi-graph-down-arrow me-2"></i>Performance Decline Alerts
+                </h6>
+                <span class="badge bg-danger-subtle text-danger">{{ metrics.declining_students|length }} Flagged</span>
+            </div>
+
+            {% if metrics.declining_students %}
+                <p class="small text-muted mb-2">Students whose score dropped by >8% between recent assessments:</p>
+                <div class="list-group list-group-flush small">
+                    {% for d in metrics.declining_students %}
+                        <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="{{ url_for('faculty.student_detail', id=d.student.id) }}" class="fw-bold text-dark text-decoration-none">
+                                    {{ d.student.full_name }}
+                                </a>
+                                <div class="text-muted" style="font-size: 0.78rem;">
+                                    {{ d.student.student_id }} | {{ d.assessment_name }}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-danger-subtle text-danger">Dropped -{{ d.drop }}%</span>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ d.prev_pct }}% &rarr; {{ d.curr_pct }}%</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                    No severe performance drops detected across recent assessments!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 3. At-Risk Students Priority Interventions Table -->
+<div class="table-card">
+    <div class="table-header-bar">
+        <div>
+            <h5 class="chart-title mb-0 text-danger"><i class="bi bi-shield-exclamation me-2"></i>At-Risk Students in Assigned Classes</h5>
+            <small class="text-muted">Machine learning and attendance threshold flags requiring counseling</small>
+        </div>
+        <a href="{{ url_for('faculty.predictions') }}" class="btn btn-sm btn-outline-danger">
+            View All Predictions
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Avg Marks</th>
+                    <th>Attendance %</th>
+                    <th>Risk Category</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if metrics.at_risk_students %}
+                    {% for s in metrics.at_risk_students %}
+                        <tr>
+                            <td><strong>{{ s.student.student_id }}</strong></td>
+                            <td class="fw-semibold">{{ s.student.full_name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ s.student.academic_class.display_name }}</span></td>
+                            <td>
+                                <span class="fw-bold {% if s.avg_marks < 50 %}text-danger{% elif s.avg_marks < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ s.avg_marks }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if s.attendance_pct < 65 %}text-danger{% elif s.attendance_pct < 75 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ s.attendance_pct }}%
+                                </span>
+                            </td>
+                            <td><span class="small fw-semibold">{{ s.category }}</span></td>
+                            <td>
+                                <span class="risk-pill {{ s.risk_level }}">
+                                    {{ s.risk_level }} Risk
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('faculty.student_detail', id=s.student.id) }}" class="btn btn-sm btn-outline-teal py-0 px-2">
+                                    <i class="bi bi-eye"></i> Review / Feedback
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No students currently flagged at risk in your assigned classes.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    renderBarChart(
+        'facultyAssessChart',
+        {{ metrics.charts.assess_labels | tojson }},
+        {{ metrics.charts.assess_averages | tojson }},
+        'Assessment Average (%)',
+        '#0d9488'
+    );
+});
+</script>
+{% endblock %}

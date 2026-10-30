@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Management - EduMonitor AI{% endblock %}
+{% block header_title %}Faculty Directory & Assignments{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <div>
+            <h5 class="chart-title mb-0">Teaching Faculty</h5>
+            <small class="text-muted">Manage faculty accounts and class/subject assignments</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-teal" data-bs-toggle="modal" data-bs-target="#assignModal">
+                <i class="bi bi-link-45deg me-1"></i> Assign Class/Subject
+            </button>
+            <a href="{{ url_for('admin.add_faculty') }}" class="btn btn-sm btn-teal">
+                <i class="bi bi-person-plus-fill me-1"></i> Add Faculty
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Emp ID</th>
+                    <th>Faculty Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Assigned Classes & Subjects</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if faculties %}
+                    {% for f in faculties %}
+                        <tr>
+                            <td><strong>{{ f.employee_id }}</strong></td>
+                            <td class="fw-semibold text-secondary-navy">{{ f.user.full_name }}</td>
+                            <td class="text-muted small">{{ f.user.email }}</td>
+                            <td>{{ f.department }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ f.designation }}</span></td>
+                            <td>
+                                {% if f.assignments %}
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for a in f.assignments %}
+                                            <span class="badge bg-secondary-subtle text-dark border d-flex align-items-center gap-1">
+                                                {{ a.academic_class.name }}-{{ a.academic_class.section }}: {{ a.subject.code }}
+                                                <form method="POST" action="{{ url_for('admin.unassign_faculty', assignment_id=a.id) }}" class="d-inline" onsubmit="return confirm('Remove this teaching assignment?');">
+                                                    <button type="submit" class="btn btn-link p-0 text-danger border-0" style="line-height: 1;"><i class="bi bi-x"></i></button>
+                                                </form>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted small">No active assignments</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if f.user.is_active %}
+                                    <span class="badge bg-success-subtle text-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Deactivated</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ url_for('admin.toggle_faculty_status', id=f.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm {% if f.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} py-0 px-2" title="Toggle account status">
+                                        {% if f.user.is_active %}Deactivate{% else %}Activate{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No faculty profiles found.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Assign Faculty to Class & Subject -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-secondary-navy"><i class="bi bi-link-45deg me-2 text-teal"></i>Assign Class & Subject to Faculty</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.assign_faculty') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Faculty *</label>
+                        <select name="faculty_id" class="form-select" required>
+                            <option value="">Choose Faculty...</option>
+                            {% for f in faculties %}
+                                <option value="{{ f.id }}">{{ f.user.full_name }} ({{ f.employee_id }} - {{ f.department }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Class *</label>
+                        <select name="class_id" class="form-select" required>
+                            <option value="">Choose Class...</option>
+                            {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.display_name }} ({{ c.department }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Subject *</label>
+                        <select name="subject_id" class="form-select" required>
+                            <option value="">Choose Subject...</option>
+                            {% for s in subjects %}
+                                <option value="{{ s.id }}">{{ s.code }} - {{ s.name }} (Sem {{ s.semester }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-teal fw-bold"><i class="bi bi-check-circle me-1"></i>Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

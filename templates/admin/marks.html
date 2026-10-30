@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}All Marks Records - EduMonitor AI{% endblock %}
+{% block header_title %}Academic Assessment Marks Records{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <form method="GET" action="{{ url_for('admin.view_marks') }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <select name="class_id" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Classes</option>
+                {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class == c.id|string %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="subject_id" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Subjects</option>
+                {% for s in subjects %}
+                    <option value="{{ s.id }}" {% if selected_subject == s.id|string %}selected{% endif %}>{{ s.code }} - {{ s.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            {% if selected_class or selected_subject %}
+                <a href="{{ url_for('admin.view_marks') }}" class="btn btn-sm btn-link text-muted">Clear</a>
+            {% endif %}
+        </form>
+
+        <a href="{{ url_for('admin.export_marks_csv') }}" class="btn btn-sm btn-outline-teal">
+            <i class="bi bi-download me-1"></i> Export Marks CSV
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Assessment</th>
+                    <th>Score / Max</th>
+                    <th>Percentage</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if marks %}
+                    {% for m in marks %}
+                        <tr>
+                            <td><strong>{{ m.student.student_id }}</strong></td>
+                            <td>{{ m.student.full_name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ m.assessment.academic_class.display_name }}</span></td>
+                            <td><span class="badge bg-secondary-subtle text-dark">{{ m.assessment.subject.code }}</span> {{ m.assessment.subject.name }}</td>
+                            <td>{{ m.assessment.name }} ({{ m.assessment.assessment_type }})</td>
+                            <td><strong>{{ m.score }}</strong> / {{ m.assessment.max_marks }}</td>
+                            <td>
+                                <span class="fw-bold {% if m.percentage < 50 %}text-danger{% elif m.percentage < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ m.percentage }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if m.percentage >= 50 %}
+                                    <span class="badge bg-success-subtle text-success">Pass</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Fail</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ m.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-5">No marks recorded matching current filters.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="p-3 bg-light border-top text-muted small">
+        Showing <strong>{{ marks|length }}</strong> total mark records
+    </div>
+</div>
+{% endblock %}

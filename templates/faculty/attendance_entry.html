@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Record Daily Attendance - Faculty Portal{% endblock %}
+{% block header_title %}Batch Daily Attendance Recording{% endblock %}
+
+{% block content %}
+<!-- Selection Bar -->
+<div class="table-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('faculty.attendance_entry') }}" class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div>
+                <label class="form-label small fw-bold mb-1">Target Class:</label>
+                <select name="class_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label small fw-bold mb-1">Attendance Date:</label>
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ selected_date }}" onchange="this.form.submit()">
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="markAll('Present')">
+                <i class="bi bi-check-all me-1"></i> Mark All Present
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="markAll('Absent')">
+                <i class="bi bi-x-circle me-1"></i> Mark All Absent
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Attendance Entry Table -->
+<div class="table-card">
+    <form method="POST" action="{{ url_for('faculty.attendance_entry') }}">
+        <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+        <input type="hidden" name="date" value="{{ selected_date }}">
+
+        <div class="table-header-bar">
+            <div>
+                <h5 class="chart-title mb-0">Daily Roster Attendance</h5>
+                <small class="text-muted">Recording attendance for date: <strong>{{ selected_date }}</strong></small>
+            </div>
+            <button type="submit" class="btn btn-sm btn-teal fw-bold">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Attendance
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Student Roll ID</th>
+                        <th style="width: 25%;">Student Name</th>
+                        <th style="width: 35%;">Attendance Status</th>
+                        <th style="width: 25%;">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if students %}
+                        {% for s in students %}
+                            {% set current_rec = current_records.get(s.id) %}
+                            {% set current_status = current_rec.status if current_rec else 'Present' %}
+                            <tr>
+                                <td><strong>{{ s.student_id }}</strong></td>
+                                <td class="fw-semibold text-secondary-navy">{{ s.full_name }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="radio" class="btn-check status-radio" name="status_{{ s.id }}" id="pres_{{ s.id }}" value="Present" {% if current_status == 'Present' %}checked{% endif %}>
+                                        <label class="btn btn-outline-success px-3" for="pres_{{ s.id }}">
+                                            <i class="bi bi-check-lg me-1"></i>Present
+                                        </label>
+
+                                        <input type="radio" class="btn-check status-radio" name="status_{{ s.id }}" id="late_{{ s.id }}" value="Late" {% if current_status == 'Late' %}checked{% endif %}>
+                                        <label class="btn btn-outline-warning px-3" for="late_{{ s.id }}">
+                                            <i class="bi bi-clock me-1"></i>Late
+                                        </label>
+
+                                        <input type="radio" class="btn-check status-radio" name="status_{{ s.id }}" id="abs_{{ s.id }}" value="Absent" {% if current_status == 'Absent' %}checked{% endif %}>
+                                        <label class="btn btn-outline-danger px-3" for="abs_{{ s.id }}">
+                                            <i class="bi bi-x-lg me-1"></i>Absent
+                                        </label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" name="remarks_{{ s.id }}" class="form-control form-control-sm" 
+                                           value="{{ current_rec.remarks if current_rec and current_rec.remarks else '' }}" 
+                                           placeholder="Optional remark...">
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-5">No students in selected class.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Submitting updates existing attendance for this date without creating duplicate entries.</span>
+            <button type="submit" class="btn btn-teal fw-bold">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Save Attendance
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markAll(status) {
+    const radios = document.querySelectorAll('.status-radio[value="' + status + '"]');
+    radios.forEach(function (radio) {
+        radio.checked = true;
+    });
+}
+</script>
+{% endblock %}

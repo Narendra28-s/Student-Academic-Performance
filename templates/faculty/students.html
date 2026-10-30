@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}My Students - EduMonitor AI{% endblock %}
+{% block header_title %}Assigned Students Directory{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <form method="GET" action="{{ url_for('faculty.students') }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="input-group input-group-sm" style="min-width: 250px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by name or roll number..." value="{{ search_query }}">
+            </div>
+
+            <select name="class_id" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All My Classes</option>
+                {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class == c.id|string %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            {% if search_query or selected_class %}
+                <a href="{{ url_for('faculty.students') }}" class="btn btn-sm btn-link text-muted">Clear</a>
+            {% endif %}
+        </form>
+
+        <span class="text-muted small"><strong>{{ students|length }}</strong> Student(s)</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Full Name</th>
+                    <th>Class</th>
+                    <th>Email</th>
+                    <th>Average Marks</th>
+                    <th>Attendance</th>
+                    <th>Risk Assessment</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if students %}
+                    {% for s in students %}
+                        {% set pred = s.get_latest_prediction() %}
+                        {% set avg = s.get_average_marks() %}
+                        {% set att = s.get_attendance_percentage() %}
+                        <tr>
+                            <td><strong>{{ s.student_id }}</strong></td>
+                            <td>
+                                <a href="{{ url_for('faculty.student_detail', id=s.id) }}" class="fw-semibold text-secondary-navy text-decoration-none">
+                                    {{ s.full_name }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ s.academic_class.display_name }}</span></td>
+                            <td class="text-muted small">{{ s.email }}</td>
+                            <td>
+                                <span class="fw-bold {% if avg < 50 %}text-danger{% elif avg < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ avg }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if att < 65 %}text-danger{% elif att < 75 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ att }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if pred %}
+                                    <span class="risk-pill {{ pred.risk_level }}">
+                                        {{ pred.risk_level }} Risk
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('faculty.student_detail', id=s.id) }}" class="btn btn-sm btn-outline-teal py-0 px-2">
+                                    <i class="bi bi-person-lines-fill me-1"></i> View & Feedback
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-5">No students found matching your search.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

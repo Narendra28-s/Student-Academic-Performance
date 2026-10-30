@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Classes - EduMonitor AI{% endblock %}
+{% block header_title %}Academic Classes & Sections{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Classes List -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="table-header-bar">
+                <h5 class="chart-title mb-0"><i class="bi bi-building me-2 text-teal"></i>Classes & Batches</h5>
+                <span class="badge bg-light text-dark border">{{ classes|length }} Active Classes</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Class Code</th>
+                            <th>Section</th>
+                            <th>Department</th>
+                            <th>Academic Year</th>
+                            <th>Students Enrolled</th>
+                            <th>Faculty Teaching</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if classes %}
+                            {% for c in classes %}
+                                <tr>
+                                    <td><strong class="text-secondary-navy">{{ c.name }}</strong></td>
+                                    <td><span class="badge bg-light text-dark border">Sec {{ c.section }}</span></td>
+                                    <td>{{ c.department }}</td>
+                                    <td>{{ c.academic_year }}</td>
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary">
+                                            <i class="bi bi-people-fill me-1"></i> {{ c.students.count() }} Students
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success-subtle text-success">
+                                            {{ c.faculty_assignments|length }} Assigned
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No classes created yet.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Class Form -->
+    <div class="col-lg-4">
+        <div class="table-card p-4">
+            <h5 class="chart-title mb-3 text-secondary-navy"><i class="bi bi-plus-circle-fill me-2 text-teal"></i>Create New Class</h5>
+            <form method="POST" action="{{ url_for('admin.classes_list') }}">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Class / Program Name *</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. BE-CSE-4" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Section *</label>
+                    <input type="text" name="section" class="form-control" value="A" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Department</label>
+                    <input type="text" name="department" class="form-control" value="Computer Science & Eng">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Academic Year</label>
+                    <input type="text" name="academic_year" class="form-control" value="2025-2026">
+                </div>
+
+                <button type="submit" class="btn btn-teal w-100 fw-bold">
+                    <i class="bi bi-plus-lg me-1"></i> Add Academic Class
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

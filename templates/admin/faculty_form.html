@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Add Faculty - EduMonitor AI{% endblock %}
+{% block header_title %}Create Faculty Account{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="table-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h5 class="fw-bold text-secondary-navy mb-0">
+                    <i class="bi bi-person-badge-fill me-2 text-teal"></i>Faculty Information
+                </h5>
+                <a href="{{ url_for('admin.faculty_list') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Faculty
+                </a>
+            </div>
+
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Full Name *</label>
+                        <input type="text" name="full_name" class="form-control" placeholder="e.g. Dr. Rajesh Sharma" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Employee ID *</label>
+                        <input type="text" name="employee_id" class="form-control" placeholder="e.g. FAC-CSE-003" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Email Address *</label>
+                        <input type="email" name="email" class="form-control" placeholder="faculty@eft.edu" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Default Password *</label>
+                        <input type="text" name="password" class="form-control" value="Faculty@123" required>
+                        <small class="text-muted">Faculty can change this after logging in.</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Department</label>
+                        <input type="text" name="department" class="form-control" value="Computer Science & Eng">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Designation</label>
+                        <select name="designation" class="form-select">
+                            <option value="Assistant Professor">Assistant Professor</option>
+                            <option value="Associate Professor">Associate Professor</option>
+                            <option value="Professor">Professor</option>
+                            <option value="Head of Department">Head of Department</option>
+                            <option value="Lecturer">Lecturer</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Qualification</label>
+                        <input type="text" name="qualification" class="form-control" placeholder="e.g. Ph.D., M.Tech">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Phone Number</label>
+                        <input type="text" name="phone" class="form-control" placeholder="+1 555-0100">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{{ url_for('admin.faculty_list') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-teal fw-bold">
+                        <i class="bi bi-check-circle me-1"></i> Register Faculty Member
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

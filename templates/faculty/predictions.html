@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Risk Predictions - Faculty Portal{% endblock %}
+{% block header_title %}Student Academic Risk Analysis{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <div>
+            <h5 class="chart-title mb-0"><i class="bi bi-cpu-fill me-2 text-teal"></i>Student Risk Predictions & Action Guidance</h5>
+            <small class="text-muted">Calculated by machine learning model based on attendance, assessment trends, and study hours</small>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Risk Category</th>
+                    <th>Risk Probability</th>
+                    <th>Avg Marks</th>
+                    <th>Attendance</th>
+                    <th>Suggested Academic Intervention</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if predictions_data %}
+                    {% for item in predictions_data %}
+                        {% set s = item.student %}
+                        {% set p = item.prediction %}
+                        <tr>
+                            <td><strong>{{ s.student_id }}</strong></td>
+                            <td class="fw-semibold text-secondary-navy">{{ s.full_name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ s.academic_class.display_name }}</span></td>
+                            <td>
+                                <span class="risk-pill {{ p.risk_level }}">
+                                    {{ p.risk_level }} Risk
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar {% if p.risk_level == 'High' %}bg-danger{% elif p.risk_level == 'Medium' %}bg-warning{% else %}bg-success{% endif %}" 
+                                             style="width: {{ (p.probability * 100)|round }}%;"></div>
+                                    </div>
+                                    <span class="small text-muted">{{ (p.probability * 100)|round(1) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if item.avg_marks < 50 %}text-danger{% elif item.avg_marks < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ item.avg_marks }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if item.attendance_pct < 65 %}text-danger{% elif item.attendance_pct < 75 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ item.attendance_pct }}%
+                                </span>
+                            </td>
+                            <td class="small" style="max-width: 280px;">
+                                <div class="text-truncate text-secondary" title="{{ p.suggestion_text }}">
+                                    {{ p.suggestion_text.split('\n')[0] if p.suggestion_text else '-' }}
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('faculty.student_detail', id=s.id) }}" class="btn btn-sm btn-outline-teal py-0 px-2">
+                                    <i class="bi bi-chat-quote me-1"></i> Give Feedback
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-5">No prediction records available.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="p-3 bg-light border-top text-muted small">
+        Total <strong>{{ predictions_data|length }}</strong> students evaluated in your assigned classes.
+    </div>
+</div>
+{% endblock %}

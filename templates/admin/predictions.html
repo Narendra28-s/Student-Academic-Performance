@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}ML Risk Predictions - EduMonitor AI{% endblock %}
+{% block header_title %}Machine Learning Academic Risk Prediction Matrix{% endblock %}
+
+{% block content %}
+<!-- Model Performance Metric Banner -->
+{% if model_metrics %}
+<div class="table-card p-3 mb-4 bg-light">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h6 class="fw-bold text-secondary-navy mb-1">
+                <i class="bi bi-cpu-fill me-2 text-teal"></i>{{ model_metrics.model_name }}
+            </h6>
+            <p class="text-muted small mb-0">
+                Trained on: <strong>{{ model_metrics.trained_at }}</strong> | 
+                Dataset: <strong>{{ model_metrics.dataset_size }} historical records</strong> (80/20 stratified split)
+            </p>
+        </div>
+        <div class="col-md-5 d-flex justify-content-md-end gap-2 mt-2 mt-md-0">
+            <div class="d-flex gap-3 text-center border-start ps-3 me-2">
+                <div>
+                    <div class="fs-5 fw-bold text-success">{{ model_metrics.accuracy }}%</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">ACCURACY</div>
+                </div>
+                <div>
+                    <div class="fs-5 fw-bold text-primary">{{ model_metrics.f1_score }}%</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">F1-SCORE</div>
+                </div>
+                <div>
+                    <div class="fs-5 fw-bold text-dark">{{ model_metrics.precision }}%</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">PRECISION</div>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin.trigger_retrain') }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-teal" onclick="return confirm('Retrain ML Random Forest model on updated data?');">
+                    <i class="bi bi-arrow-repeat me-1"></i> Retrain Model
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.trigger_reevaluation') }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-teal">
+                    <i class="bi bi-play-fill me-1"></i> Re-Score Students
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Predictions Table -->
+<div class="table-card">
+    <div class="table-header-bar">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold small text-secondary">Filter by Risk:</span>
+            <a href="{{ url_for('admin.predictions') }}" class="btn btn-sm {% if not selected_risk %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+            <a href="{{ url_for('admin.predictions', risk='High') }}" class="btn btn-sm {% if selected_risk == 'High' %}btn-danger{% else %}btn-outline-danger{% endif %}">High Risk</a>
+            <a href="{{ url_for('admin.predictions', risk='Medium') }}" class="btn btn-sm {% if selected_risk == 'Medium' %}btn-warning{% else %}btn-outline-warning{% endif %}">Medium Risk</a>
+            <a href="{{ url_for('admin.predictions', risk='Low') }}" class="btn btn-sm {% if selected_risk == 'Low' %}btn-success{% else %}btn-outline-success{% endif %}">Low Risk</a>
+        </div>
+
+        <a href="{{ url_for('admin.export_predictions_csv') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Export CSV Report
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Risk Level</th>
+                    <th>Predicted Category</th>
+                    <th>Risk Probability</th>
+                    <th>Attendance</th>
+                    <th>Marks Avg</th>
+                    <th>Intervention Suggestion</th>
+                    <th>Evaluated At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if predictions %}
+                    {% for p in predictions %}
+                        {% set s = p.student %}
+                        <tr>
+                            <td><strong>{{ s.student_id }}</strong></td>
+                            <td>
+                                <a href="{{ url_for('admin.view_student', id=s.id) }}" class="fw-semibold text-secondary-navy text-decoration-none">
+                                    {{ s.full_name }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ s.academic_class.display_name }}</span></td>
+                            <td>
+                                <span class="risk-pill {{ p.risk_level }}">
+                                    {{ p.risk_level }}
+                                </span>
+                            </td>
+                            <td><span class="small fw-semibold">{{ p.predicted_category }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar {% if p.risk_level == 'High' %}bg-danger{% elif p.risk_level == 'Medium' %}bg-warning{% else %}bg-success{% endif %}" 
+                                             style="width: {{ (p.probability * 100)|round }}%;"></div>
+                                    </div>
+                                    <span class="small text-muted">{{ (p.probability * 100)|round(1) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if s.get_attendance_percentage() < 65 %}text-danger{% elif s.get_attendance_percentage() < 75 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ s.get_attendance_percentage() }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {% if s.get_average_marks() < 50 %}text-danger{% elif s.get_average_marks() < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ s.get_average_marks() }}%
+                                </span>
+                            </td>
+                            <td class="small" style="max-width: 250px;">
+                                <div class="text-truncate text-secondary" title="{{ p.suggestion_text }}">
+                                    {{ p.suggestion_text.split('\n')[0] if p.suggestion_text else '-' }}
+                                </div>
+                            </td>
+                            <td class="small text-muted">{{ p.generated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="10" class="text-center text-muted py-5">No prediction records found.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="p-3 bg-light border-top text-muted small d-flex justify-content-between">
+        <span>Showing <strong>{{ predictions|length }}</strong> predictions</span>
+        <span><em>Note: Machine learning predictions are estimates based on academic indicators to assist faculty guidance.</em></span>
+    </div>
+</div>
+{% endblock %}

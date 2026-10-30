@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.full_name }} - Academic Profile{% endblock %}
+{% block header_title %}Student Academic Profile{% endblock %}
+
+{% block content %}
+<!-- Back button & actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('admin.students') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Student Directory
+    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.edit_student', id=student.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Edit Profile
+        </a>
+    </div>
+</div>
+
+<!-- Header Card: Student Info + AI Risk Banner -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="table-card p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="user-avatar" style="width: 58px; height: 58px; font-size: 1.5rem;">
+                    {{ student.first_name[:1] }}
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-1 text-secondary-navy">{{ student.full_name }}</h4>
+                    <div class="text-muted small">
+                        Roll ID: <strong class="text-dark">{{ student.student_id }}</strong> | 
+                        Class: <span class="badge bg-light text-dark border">{{ student.academic_class.display_name }}</span> | 
+                        Status: <span class="badge bg-success-subtle text-success">{{ student.status }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-2 pt-2 border-top small">
+                <div class="col-sm-6">
+                    <span class="text-muted">Email:</span> <strong>{{ student.email }}</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted">Gender:</span> <strong>{{ student.gender }}</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted">Study Commitment:</span> <strong>{{ student.study_hours_per_week }} hrs/week</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted">Guardian Phone:</span> <strong>{{ student.guardian_phone or 'Not provided' }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Machine Learning Risk Card -->
+    <div class="col-lg-5">
+        <div class="table-card p-4 h-100 border-{% if prediction.risk_level == 'High' %}danger{% elif prediction.risk_level == 'Medium' %}warning{% else %}success{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0 text-secondary-navy"><i class="bi bi-cpu me-1 text-teal"></i>Academic Risk Assessment</h6>
+                <span class="risk-pill {{ prediction.risk_level }}">
+                    {{ prediction.risk_level }} Risk
+                </span>
+            </div>
+            
+            <div class="p-2 bg-light rounded-3 mb-2 small">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Category:</span>
+                    <strong>{{ prediction.predicted_category }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Risk Probability:</span>
+                    <strong>{{ (prediction.probability * 100)|round(1) }}%</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Engine:</span>
+                    <span class="text-muted">{{ pred_details.model_used }}</span>
+                </div>
+            </div>
+
+            <!-- Contributing Factors -->
+            <div class="mb-2">
+                <label class="small fw-bold text-secondary">Key Driving Factors:</label>
+                <ul class="small ps-3 mb-0 text-muted">
+                    {% for factor in pred_details.factors %}
+                        <li>{{ factor }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Suggested Interventions -->
+            <div>
+                <label class="small fw-bold text-secondary">Intervention Plan:</label>
+                <ul class="small ps-3 mb-0 text-dark">
+                    {% for suggestion in pred_details.suggestions %}
+                        <li>{{ suggestion }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Stats Row -->
+{% set att_stats = student.get_attendance_stats() %}
+{% set avg_marks = student.get_average_marks() %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Overall Average</div>
+                <h3 class="stat-value">{{ avg_marks }}%</h3>
+                <div class="stat-subtext">Across all assessments</div>
+            </div>
+            <div class="stat-icon green">
+                <i class="bi bi-award"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Attendance Rate</div>
+                <h3 class="stat-value">{{ att_stats.percentage }}%</h3>
+                <div class="stat-subtext">{{ att_stats.present }} Present / {{ att_stats.total }} Days</div>
+            </div>
+            <div class="stat-icon teal">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Absences Recorded</div>
+                <h3 class="stat-value text-danger">{{ att_stats.absent }}</h3>
+                <div class="stat-subtext">{{ att_stats.late }} Late entries</div>
+            </div>
+            <div class="stat-icon red">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Assessments Taken</div>
+                <h3 class="stat-value">{{ marks|length }}</h3>
+                <div class="stat-subtext">Recorded in database</div>
+            </div>
+            <div class="stat-icon blue">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs for Marks, Attendance, Faculty Feedback -->
+<div class="table-card">
+    <ul class="nav nav-tabs px-3 pt-3 bg-light border-bottom" id="studentTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active fw-semibold" id="marks-tab" data-bs-toggle="tab" data-bs-target="#marks-content" type="button">
+                <i class="bi bi-card-checklist me-1"></i> Marks & Assessments ({{ marks|length }})
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-semibold" id="att-tab" data-bs-toggle="tab" data-bs-target="#att-content" type="button">
+                <i class="bi bi-calendar3 me-1"></i> Attendance Log ({{ attendance|length }})
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-semibold" id="feedback-tab" data-bs-toggle="tab" data-bs-target="#feedback-content" type="button">
+                <i class="bi bi-chat-quote me-1"></i> Faculty Feedback ({{ feedbacks|length }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content p-3" id="studentTabContent">
+        <!-- MARKS TAB -->
+        <div class="tab-pane fade show active" id="marks-content">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Assessment</th>
+                            <th>Type</th>
+                            <th>Score</th>
+                            <th>Max</th>
+                            <th>Percentage</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if marks %}
+                            {% for m in marks %}
+                                <tr>
+                                    <td><strong>{{ m.assessment.subject.code }}</strong> - {{ m.assessment.subject.name }}</td>
+                                    <td>{{ m.assessment.name }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ m.assessment.assessment_type }}</span></td>
+                                    <td class="fw-bold">{{ m.score }}</td>
+                                    <td>{{ m.assessment.max_marks }}</td>
+                                    <td>
+                                        <span class="fw-bold {% if m.percentage < 50 %}text-danger{% elif m.percentage < 65 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ m.percentage }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if m.percentage >= 50 %}
+                                            <span class="badge bg-success-subtle text-success">Pass</span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger">Fail</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">{{ m.remarks or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="8" class="text-center text-muted py-4">No marks recorded yet for this student.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE TAB -->
+        <div class="tab-pane fade" id="att-content">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Class</th>
+                            <th>Attendance Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if attendance %}
+                            {% for a in attendance %}
+                                <tr>
+                                    <td><strong>{{ a.date.strftime('%Y-%m-%d (%A)') }}</strong></td>
+                                    <td>{{ a.academic_class.display_name }}</td>
+                                    <td>
+                                        {% if a.status == 'Present' %}
+                                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Present</span>
+                                        {% elif a.status == 'Late' %}
+                                            <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-clock me-1"></i>Late</span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">{{ a.remarks or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">No attendance records found.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FACULTY FEEDBACK TAB -->
+        <div class="tab-pane fade" id="feedback-content">
+            {% if feedbacks %}
+                <div class="row g-3">
+                    {% for fb in feedbacks %}
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light border rounded-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="text-secondary-navy">{{ fb.faculty.user.full_name }}</strong>
+                                    <span class="text-muted small">{{ fb.created_at.strftime('%b %d, %Y') }}</span>
+                                </div>
+                                <div class="text-teal small fw-semibold mb-2">
+                                    Subject: {{ fb.subject.name if fb.subject else 'General Academic Performance' }}
+                                </div>
+                                <p class="small mb-2 text-dark">{{ fb.feedback_text }}</p>
+                                {% if fb.recommendation %}
+                                    <div class="p-2 bg-white rounded border small">
+                                        <strong class="text-secondary">Advice:</strong> {{ fb.recommendation }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-4">No faculty feedback posted yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

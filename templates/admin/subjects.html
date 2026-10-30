@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects - EduMonitor AI{% endblock %}
+{% block header_title %}Academic Course Subjects{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Subjects List -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="table-header-bar">
+                <h5 class="chart-title mb-0"><i class="bi bi-journal-bookmark-fill me-2 text-teal"></i>Curriculum Subjects</h5>
+                <span class="badge bg-light text-dark border">{{ subjects|length }} Subjects</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Subject Code</th>
+                            <th>Subject Title</th>
+                            <th>Credits</th>
+                            <th>Semester</th>
+                            <th>Department</th>
+                            <th>Assessments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if subjects %}
+                            {% for s in subjects %}
+                                <tr>
+                                    <td><strong class="text-secondary-navy">{{ s.code }}</strong></td>
+                                    <td>{{ s.name }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ s.credits }} Credits</span></td>
+                                    <td>Sem {{ s.semester }}</td>
+                                    <td>{{ s.department }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary-subtle text-dark">
+                                            {{ s.assessments|length }} Assessments
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No subjects registered yet.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Subject Form -->
+    <div class="col-lg-4">
+        <div class="table-card p-4">
+            <h5 class="chart-title mb-3 text-secondary-navy"><i class="bi bi-plus-circle-fill me-2 text-teal"></i>Add New Subject</h5>
+            <form method="POST" action="{{ url_for('admin.subjects_list') }}">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Subject Code *</label>
+                    <input type="text" name="code" class="form-control" placeholder="e.g. CS401" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Subject Name *</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Machine Learning & AI" required>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Credits</label>
+                        <input type="number" name="credits" class="form-control" value="3" min="1" max="10">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Semester</label>
+                        <input type="number" name="semester" class="form-control" value="5" min="1" max="8">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Department</label>
+                    <input type="text" name="department" class="form-control" value="Computer Science & Eng">
+                </div>
+
+                <button type="submit" class="btn btn-teal w-100 fw-bold">
+                    <i class="bi bi-plus-lg me-1"></i> Register Subject
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}No Child Linked - Parent Portal{% endblock %}
+{% block header_title %}Parent Performance Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="table-card p-5 text-center">
+            <i class="bi bi-person-exclamation text-warning fs-1 mb-3"></i>
+            <h4 class="fw-bold text-secondary-navy">No Student Linked to Your Account</h4>
+            <p class="text-muted mb-4">
+                Your parent account ({{ parent.user.email }}) is active, but our administrative office has not yet associated your account with your child's student record.
+            </p>
+            <div class="alert alert-info text-start small">
+                <i class="bi bi-info-circle-fill me-1"></i> Please contact the academic administration office with your child's Roll / Registration ID so they can link your account from the Admin portal.
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Logs - EduMonitor AI{% endblock %}
+{% block header_title %}Student Daily Attendance Logs{% endblock %}
+
+{% block content %}
+<div class="table-card">
+    <div class="table-header-bar">
+        <form method="GET" action="{{ url_for('admin.view_attendance') }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <select name="class_id" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Classes</option>
+                {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class == c.id|string %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="date" name="date" class="form-control form-control-sm" style="width: auto;" value="{{ selected_date }}">
+
+            <select name="status" class="form-select form-select-sm" style="width: auto;">
+                <option value="">All Statuses</option>
+                <option value="Present" {% if selected_status == 'Present' %}selected{% endif %}>Present</option>
+                <option value="Absent" {% if selected_status == 'Absent' %}selected{% endif %}>Absent</option>
+                <option value="Late" {% if selected_status == 'Late' %}selected{% endif %}>Late</option>
+            </select>
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+            {% if selected_class or selected_date or selected_status %}
+                <a href="{{ url_for('admin.view_attendance') }}" class="btn btn-sm btn-link text-muted">Clear</a>
+            {% endif %}
+        </form>
+
+        <a href="{{ url_for('admin.export_attendance_csv') }}" class="btn btn-sm btn-outline-teal">
+            <i class="bi bi-download me-1"></i> Export Attendance CSV
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Attendance Status</th>
+                    <th>Recorded Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td><strong>{{ r.date.strftime('%Y-%m-%d') }}</strong></td>
+                            <td>{{ r.student.student_id }}</td>
+                            <td class="fw-semibold">{{ r.student.full_name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ r.academic_class.display_name }}</span></td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Present</span>
+                                {% elif r.status == 'Late' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-clock me-1"></i>Late</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ r.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-5">No attendance records found for current criteria.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="p-3 bg-light border-top text-muted small">
+        Showing <strong>{{ records|length }}</strong> attendance records
+    </div>
+</div>
+{% endblock %}

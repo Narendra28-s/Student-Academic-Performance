@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Child Attendance - Parent Portal{% endblock %}
+{% block header_title %}Child Attendance Record{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-secondary-navy">Attendance History for {{ student.full_name }}</h5>
+        <span class="text-muted small">Enrolled in: <strong>{{ student.academic_class.display_name }}</strong></span>
+    </div>
+
+    {% if children|length > 1 %}
+        <div class="d-flex align-items-center gap-2">
+            <label class="small fw-bold text-secondary mb-0">Select Child:</label>
+            <select class="form-select form-select-sm" style="width: auto;" onchange="location.href='{{ url_for('parent.attendance') }}?child_id=' + this.value">
+                {% for c in children %}
+                    <option value="{{ c.id }}" {% if student.id == c.id %}selected{% endif %}>{{ c.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Attendance Stats Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Attendance Rate</div>
+                <h3 class="stat-value {% if stats.percentage < 75 %}text-danger{% else %}text-success{% endif %}">{{ stats.percentage }}%</h3>
+                <div class="stat-subtext">University Target: >= 75%</div>
+            </div>
+            <div class="stat-icon teal">
+                <i class="bi bi-percent"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Days Present</div>
+                <h3 class="stat-value text-success">{{ stats.present }}</h3>
+                <div class="stat-subtext">Classroom Sessions Attended</div>
+            </div>
+            <div class="stat-icon green">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Days Absent</div>
+                <h3 class="stat-value text-danger">{{ stats.absent }}</h3>
+                <div class="stat-subtext">Missed Lectures</div>
+            </div>
+            <div class="stat-icon red">
+                <i class="bi bi-x-circle-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Late Arrivals</div>
+                <h3 class="stat-value text-warning">{{ stats.late }}</h3>
+                <div class="stat-subtext">Marked Tardy</div>
+            </div>
+            <div class="stat-icon amber">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance History Log Table -->
+<div class="table-card">
+    <div class="table-header-bar">
+        <h5 class="chart-title mb-0"><i class="bi bi-calendar3 me-2 text-teal"></i>Detailed Attendance Log</h5>
+        <span class="text-muted small">Total <strong>{{ records|length }}</strong> recorded instructional days</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day of Week</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Notes / Teacher Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td><strong>{{ r.date.strftime('%Y-%m-%d') }}</strong></td>
+                            <td class="text-muted">{{ r.date.strftime('%A') }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ r.academic_class.display_name }}</span></td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Present</span>
+                                {% elif r.status == 'Late' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-clock me-1"></i>Late Arrival</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ r.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-5">No attendance logs available yet.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

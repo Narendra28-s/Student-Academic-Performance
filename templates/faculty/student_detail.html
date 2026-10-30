@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.full_name }} - Faculty Review{% endblock %}
+{% block header_title %}Student Academic Review & Feedback{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('faculty.students') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to My Students
+    </a>
+</div>
+
+<!-- Header Row: Student Profile & ML Risk Assessment -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="table-card p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="user-avatar" style="width: 58px; height: 58px; font-size: 1.5rem;">
+                    {{ student.first_name[:1] }}
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-1 text-secondary-navy">{{ student.full_name }}</h4>
+                    <div class="text-muted small">
+                        Roll ID: <strong class="text-dark">{{ student.student_id }}</strong> | 
+                        Class: <span class="badge bg-light text-dark border">{{ student.academic_class.display_name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% set att_stats = student.get_attendance_stats() %}
+            <div class="row g-2 pt-2 border-top small">
+                <div class="col-6 col-sm-3">
+                    <span class="text-muted d-block">Overall Avg:</span>
+                    <strong class="fs-6">{{ student.get_average_marks() }}%</strong>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <span class="text-muted d-block">Attendance:</span>
+                    <strong class="fs-6 {% if att_stats.percentage < 75 %}text-danger{% else %}text-success{% endif %}">
+                        {{ att_stats.percentage }}%
+                    </strong>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <span class="text-muted d-block">Study Hours:</span>
+                    <strong class="fs-6">{{ student.study_hours_per_week }} hrs/wk</strong>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <span class="text-muted d-block">Absences:</span>
+                    <strong class="fs-6 text-danger">{{ att_stats.absent }} days</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ML Risk & Guidance Card -->
+    <div class="col-lg-5">
+        <div class="table-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0 text-secondary-navy"><i class="bi bi-cpu me-1 text-teal"></i>ML Risk Predictor</h6>
+                <span class="risk-pill {{ prediction.risk_level }}">
+                    {{ prediction.risk_level }} Risk
+                </span>
+            </div>
+            
+            <p class="small text-muted mb-2">
+                Category: <strong class="text-dark">{{ prediction.predicted_category }}</strong> | 
+                Risk Score: <strong>{{ (prediction.probability * 100)|round(1) }}%</strong>
+            </p>
+
+            <div class="small mb-2">
+                <span class="fw-bold text-secondary">Contributing Factors:</span>
+                <ul class="ps-3 mb-1 text-muted">
+                    {% for f in pred_details.factors %}
+                        <li>{{ f }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="small">
+                <span class="fw-bold text-secondary">Recommended Intervention:</span>
+                <ul class="ps-3 mb-0 text-dark">
+                    {% for s in pred_details.suggestions %}
+                        <li>{{ s }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Feedback Form + Previous Feedback History -->
+<div class="row g-3 mb-4">
+    <!-- Submit Feedback Form -->
+    <div class="col-lg-5">
+        <div class="table-card p-4 h-100">
+            <h5 class="chart-title mb-3 text-secondary-navy"><i class="bi bi-chat-left-text-fill me-2 text-teal"></i>Post Faculty Feedback</h5>
+            <form method="POST" action="{{ url_for('faculty.add_feedback') }}">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Select Subject</label>
+                    <select name="subject_id" class="form-select form-select-sm">
+                        <option value="">General Academic Performance</option>
+                        {% for s in assigned_subjects %}
+                            <option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Academic Observation / Feedback *</label>
+                    <textarea name="feedback_text" class="form-control" rows="3" placeholder="Observation regarding classroom engagement, test performance, or concept grasp..." required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Actionable Improvement Advice</label>
+                    <textarea name="recommendation" class="form-control" rows="2" placeholder="e.g. Revise Chapter 3 practice problems, attend tutoring session on Thursdays..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-teal w-100 fw-bold">
+                    <i class="bi bi-send-fill me-1"></i> Submit Academic Feedback
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback History -->
+    <div class="col-lg-7">
+        <div class="table-card p-4 h-100">
+            <h5 class="chart-title mb-3 text-secondary-navy"><i class="bi bi-clock-history me-2 text-teal"></i>Feedback History</h5>
+            {% if feedbacks %}
+                <div class="d-flex flex-column gap-3" style="max-height: 380px; overflow-y: auto;">
+                    {% for fb in feedbacks %}
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-secondary-navy">{{ fb.faculty.user.full_name }}</strong>
+                                <span class="text-muted small">{{ fb.created_at.strftime('%b %d, %Y') }}</span>
+                            </div>
+                            <div class="text-teal small fw-semibold mb-2">
+                                Subject: {{ fb.subject.name if fb.subject else 'General Observation' }}
+                            </div>
+                            <p class="small mb-2 text-dark">{{ fb.feedback_text }}</p>
+                            {% if fb.recommendation %}
+                                <div class="p-2 bg-white rounded border small">
+                                    <strong class="text-secondary">Advice:</strong> {{ fb.recommendation }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-square-dots fs-3 d-block mb-2"></i>
+                    No feedback recorded for this student yet. Use the form to post observations.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Student Marks Table -->
+<div class="table-card mb-4">
+    <div class="table-header-bar">
+        <h5 class="chart-title mb-0"><i class="bi bi-card-checklist me-2 text-teal"></i>Academic Marks History</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Assessment</th>
+                    <th>Type</th>
+                    <th>Score / Max</th>
+                    <th>Percentage</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if marks %}
+                    {% for m in marks %}
+                        <tr>
+                            <td><strong>{{ m.assessment.subject.code }}</strong> - {{ m.assessment.subject.name }}</td>
+                            <td>{{ m.assessment.name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ m.assessment.assessment_type }}</span></td>
+                            <td><strong>{{ m.score }}</strong> / {{ m.assessment.max_marks }}</td>
+                            <td>
+                                <span class="fw-bold {% if m.percentage < 50 %}text-danger{% elif m.percentage < 65 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ m.percentage }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if m.percentage >= 50 %}
+                                    <span class="badge bg-success-subtle text-success">Pass</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Fail</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ m.remarks or '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">No marks records available.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

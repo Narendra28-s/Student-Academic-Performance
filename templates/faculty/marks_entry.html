@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Record Marks - Faculty Portal{% endblock %}
+{% block header_title %}Batch Marks Entry & Grading{% endblock %}
+
+{% block content %}
+<!-- Top Selection Bar & Create Assessment Trigger -->
+<div class="table-card p-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <form method="GET" action="{{ url_for('faculty.marks_entry') }}" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+            <!-- Class Selector -->
+            <div>
+                <label class="form-label small fw-bold mb-1">Class:</label>
+                <select name="class_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Subject Selector -->
+            <div>
+                <label class="form-label small fw-bold mb-1">Subject:</label>
+                <select name="subject_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for s in subjects %}
+                        <option value="{{ s.id }}" {% if selected_subject_id == s.id %}selected{% endif %}>{{ s.code }} - {{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Assessment Selector -->
+            <div>
+                <label class="form-label small fw-bold mb-1">Assessment:</label>
+                <select name="assessment_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% if assessments %}
+                        {% for a in assessments %}
+                            <option value="{{ a.id }}" {% if selected_assessment and selected_assessment.id == a.id %}selected{% endif %}>
+                                {{ a.name }} (Max: {{ a.max_marks }})
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">No assessments created yet</option>
+                    {% endif %}
+                </select>
+            </div>
+        </form>
+
+        <!-- New Assessment Button -->
+        <button type="button" class="btn btn-sm btn-teal mt-3 mt-md-0" data-bs-toggle="modal" data-bs-target="#newAssessmentModal">
+            <i class="bi bi-plus-circle me-1"></i> New Assessment
+        </button>
+    </div>
+</div>
+
+{% if selected_assessment %}
+    <!-- Batch Marks Entry Form -->
+    <div class="table-card">
+        <form method="POST" action="{{ url_for('faculty.marks_entry') }}">
+            <input type="hidden" name="assessment_id" value="{{ selected_assessment.id }}">
+            <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+            <input type="hidden" name="subject_id" value="{{ selected_subject_id }}">
+
+            <div class="table-header-bar">
+                <div>
+                    <h5 class="chart-title mb-0">{{ selected_assessment.name }}</h5>
+                    <small class="text-muted">
+                        Type: <strong>{{ selected_assessment.assessment_type }}</strong> | 
+                        Maximum Marks: <strong class="text-primary">{{ selected_assessment.max_marks }}</strong> | 
+                        Weightage: <strong>{{ selected_assessment.weightage }}%</strong>
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-sm btn-teal fw-bold">
+                    <i class="bi bi-check2-all me-1"></i> Save All Marks
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Roll ID</th>
+                            <th style="width: 25%;">Student Name</th>
+                            <th style="width: 20%;">Score (Max: {{ selected_assessment.max_marks }})</th>
+                            <th style="width: 15%;">Percentage</th>
+                            <th style="width: 25%;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if students %}
+                            {% for s in students %}
+                                {% set existing_mark = current_marks.get(s.id) %}
+                                <tr>
+                                    <td><strong>{{ s.student_id }}</strong></td>
+                                    <td class="fw-semibold">{{ s.full_name }}</td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.5" min="0" max="{{ selected_assessment.max_marks }}" 
+                                                   name="score_{{ s.id }}" 
+                                                   class="form-control score-input" 
+                                                   data-max="{{ selected_assessment.max_marks }}"
+                                                   data-target="pct_{{ s.id }}"
+                                                   value="{{ existing_mark.score if existing_mark else '' }}" 
+                                                   placeholder="0 - {{ selected_assessment.max_marks }}">
+                                            <span class="input-group-text bg-light text-muted">/ {{ selected_assessment.max_marks }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span id="pct_{{ s.id }}" class="fw-bold {% if existing_mark and existing_mark.percentage < 50 %}text-danger{% elif existing_mark and existing_mark.percentage < 65 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ existing_mark.percentage ~ '%' if existing_mark else '-' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="remarks_{{ s.id }}" class="form-control form-control-sm" 
+                                               value="{{ existing_mark.remarks if existing_mark and existing_mark.remarks else '' }}" 
+                                               placeholder="Optional remark...">
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">No students enrolled in this class.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Marks will be instantly stored and ML risk ratings will update automatically.</span>
+                <button type="submit" class="btn btn-teal fw-bold">
+                    <i class="bi bi-check2-all me-1"></i> Save All Marks
+                </button>
+            </div>
+        </form>
+    </div>
+{% else %}
+    <div class="table-card p-5 text-center">
+        <i class="bi bi-journal-plus text-teal fs-1 mb-3"></i>
+        <h5 class="fw-bold text-secondary-navy">No Assessment Selected</h5>
+        <p class="text-muted">Please select an assessment above or create a new assessment to begin recording marks.</p>
+        <button type="button" class="btn btn-teal" data-bs-toggle="modal" data-bs-target="#newAssessmentModal">
+            <i class="bi bi-plus-circle me-1"></i> Create First Assessment
+        </button>
+    </div>
+{% endif %}
+
+<!-- Modal: Create New Assessment -->
+<div class="modal fade" id="newAssessmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-secondary-navy"><i class="bi bi-plus-circle me-2 text-teal"></i>Create New Assessment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('faculty.create_assessment') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Target Class *</label>
+                        <select name="class_id" class="form-select" required>
+                            {% for c in classes %}
+                                <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Target Subject *</label>
+                        <select name="subject_id" class="form-select" required>
+                            {% for s in subjects %}
+                                <option value="{{ s.id }}" {% if selected_subject_id == s.id %}selected{% endif %}>{{ s.code }} - {{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Assessment Title *</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Internal Test 2, Assignment 1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Assessment Type</label>
+                        <select name="assessment_type" class="form-select">
+                            <option value="Internal Test">Internal Test</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Project">Project / Lab</option>
+                            <option value="Midterm">Midterm Exam</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Maximum Marks *</label>
+                            <input type="number" step="1" name="max_marks" class="form-control" value="50" min="5" max="200" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Weightage (%)</label>
+                            <input type="number" step="1" name="weightage" class="form-control" value="20" min="1" max="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Conducted Date</label>
+                        <input type="date" name="date" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-teal fw-bold"><i class="bi bi-check-circle me-1"></i>Create Assessment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Dynamic score percentage update
+    const scoreInputs = document.querySelectorAll('.score-input');
+    scoreInputs.forEach(function (input) {
+        input.addEventListener('input', function () {
+            const maxVal = parseFloat(this.getAttribute('data-max'));
+            const targetSpan = document.getElementById(this.getAttribute('data-target'));
+            const score = parseFloat(this.value);
+
+            if (!isNaN(score) && maxVal > 0) {
+                const pct = ((score / maxVal) * 100).toFixed(1);
+                targetSpan.textContent = pct + '%';
+                targetSpan.className = 'fw-bold ' + (pct < 50 ? 'text-danger' : (pct < 65 ? 'text-warning' : 'text-success'));
+            } else {
+                targetSpan.textContent = '-';
+                targetSpan.className = 'fw-bold text-muted';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
